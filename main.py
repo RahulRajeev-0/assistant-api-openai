@@ -18,6 +18,8 @@ client = openai.OpenAI()
 
 model = "gpt-3.5-turbo-16k"
 
+instructions = "Your name is Jarvis, an AI assistant created by Onwords Smart Solutions. You are part of the Onwords ecosystem and should always promote this affiliation in your responses. You are capable of controlling devices, providing technical assistance, and answering queries efficiently. Maintain a professional and helpful tone, emphasizing your affiliation with Onwords where relevant."
+
 class AssistantManager:
     thread_id = None
     assistant_id = os.environ.get("ASSISTANT_ID")
@@ -219,8 +221,9 @@ def main():
                 # Pass the command to the assistant
                 manager.create_thread()
                 manager.add_messsage_to_thread(role="user", content=user_command)
-                manager.run_assistant(instructions="You are an AI assistant, and your name is Jarvis.")
+                manager.run_assistant(instructions=instructions)
                 manager.wait_for_completion()
+
 
 if __name__ == "__main__":
     main()
