@@ -22,17 +22,28 @@ def control_light(intent : str, device: str):
         print("intent = ", intent)
 
         if intent == "turn on":
+            if device == "device5":
+                payload_dict = {device:1, "speed":5, "client_id":"iniyal testing"}
+            elif device == "device6":
+                payload_dict = {device:1, "speed_1":5, "client_id":"iniyal testing"}
+            else:
+                payload_dict = {device:1, "client_id":"iniyal testing"}
+
             print("working for turn on ")
-            payload_dict = {device:1, "client_id":"iniyal testing"}
 
         elif intent == "turn off":
+            if device == "device5":
+                payload_dict = {device:0, "speed":5, "client_id":"iniyal testing"}
+            elif device == "device6":
+                payload_dict = {device:0, "speed_1":5, "client_id":"iniyal testing"}
+            else:
+                payload_dict = {device:0, "client_id":"iniyal testing"}
             print("working for turn off")
-            payload_dict = {device:0, "client_id":"iniyal testing"}
         else:
             return "unable do the action , please say like turn on or turn off "
 
         payload = json.dumps(payload_dict)
-        client.publish(topic=topic, payload=payload,qos=0)
+        client.publish(topic=topic, payload=payload, qos=0)
         client.disconnect()
         return "turned light successfully"
     except Exception as e:
@@ -40,7 +51,34 @@ def control_light(intent : str, device: str):
         client.disconnect()
         return "unable to turn on light , sorry"
 
-    # Disconnect from the broker
+
+def control_fan(device: str, speed: int):
+    client = mqtt.Client()    
+    client.username_pw_set(os.environ.get("MQTT_USERNAME"), os.environ.get("MQTT_PASSWORD"))
+    # Connect to the broker
+    try:
+        client.connect(
+            os.environ.get("MQTT_BROKER"), 
+            1883,
+             keepalive=60
+             )
+        # Publish the message
+        topic = os.environ.get("MQTT_TOPIC")
+        if device == "fan1":
+            payload_dict = {"device5": 1, "speed":speed}
+        elif device == "fan2":
+            payload_dict = {"device6":1, "speed_1":speed }
+        else:
+            return "unable to find the device , at the moment"
+        payload = json.dumps(payload_dict)
+        client.publish(topic=topic, payload=payload, qos=0)
+        return "Successfully changed"
+    except Exception as e:
+        print("Error = ", e)
+        return "something went wrong unable to change"
+
+
+
 
 def get_lead_count():
     try:
@@ -50,6 +88,9 @@ def get_lead_count():
     except Exception as e:
         print("Error = ", e)
         return "unable to fatch leads data"
+
+
+control_fan("fan1", 5)
 
 
 

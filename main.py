@@ -4,8 +4,12 @@ import time
 import logging
 import json
 import os 
-from functions import control_light, get_lead_count
+import pvporcupine
+import pyaudio
+import struct
+from functions import control_light, get_lead_count, control_fan
 import azure.cognitiveservices.speech as speechsdk
+
 
 
 load_dotenv()
@@ -107,6 +111,9 @@ class AssistantManager:
             elif func_name == "get_facebook_leadcount":
                 output = get_lead_count()
                 tool_outputs.append({"tool_call_id": action["id"], "output": output})
+            elif func_name == "control_fan":
+                output = control_fan(arguments["device"], arguments["speed"])
+                tool_outputs.append({"tool_call_id": action["id"], "output": output})
             else:
                 raise ValueError(f"Unknown function: {func_name}")
             
@@ -135,23 +142,47 @@ def create_speech_recognizer():
     audio_config = speechsdk.audio.AudioConfig(use_default_microphone=True)
     return speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
 
-def listen_for_keyword(recognizer, keyword="Jarvis"):
-    print("Listening for the keyword '{}'...".format(keyword))
-    while True:
-        result = recognizer.recognize_once_async().get()
-        if result.reason == speechsdk.ResultReason.RecognizedSpeech:
-            print("You said: {}".format(result.text))
-            if keyword.lower() in result.text.lower():
-                print("Keyword '{}' detected!".format(keyword))
+
+
+# Initialize Porcupine for wake word detection
+access_key = os.getenv("PICOVOICE_ACCESS_KEY")
+porcupine = pvporcupine.create(
+    access_key=access_key,
+    keyword_paths=["Hey-Jarvis_en_windows_v3_0_0.ppn"]
+)
+
+# Set up the microphone for Porcupine
+pa = pyaudio.PyAudio()
+stream = pa.open(
+    format=pyaudio.paInt16,
+    channels=1,
+    rate=porcupine.sample_rate,
+    input=True,
+    frames_per_buffer=porcupine.frame_length
+)
+
+
+def wake_word_detector():
+    """Detect the wake word using Porcupine and PyAudio."""
+    print("Listening for the wake word...")
+    try:
+        while True:
+            # Read audio input in chunks matching Porcupine's frame_length
+            pcm = stream.read(porcupine.frame_length, exception_on_overflow=False)
+            
+            # Convert raw audio bytes to integers
+            pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
+
+            # Process the audio frame with Porcupine
+            keyword_index = porcupine.process(pcm)
+            if keyword_index >= 0:
+                print("Wake word detected!")
                 return True
-        elif result.reason == speechsdk.ResultReason.NoMatch:
-            print("No speech could be recognized.")
-        elif result.reason == speechsdk.ResultReason.Canceled:
-            cancellation_details = result.cancellation_details
-            print("Recognition canceled: {}".format(cancellation_details.reason))
-            if cancellation_details.reason == speechsdk.CancellationReason.Error:
-                print("Error details: {}".format(cancellation_details.error_details))
-                print("Did you set the speech resource key and region values?")
+    except Exception as e:
+        print(f"Error during wake word detection: {e}")
+        return False
+
+
 
 def listen_and_transcribe(recognizer):
     print("Listening for your command...")
@@ -169,6 +200,7 @@ def listen_and_transcribe(recognizer):
             print("Error details: {}".format(cancellation_details.error_details))
         return None
 
+
 # Main function to integrate with assistant
 def main():
     recognizer = create_speech_recognizer()
@@ -176,11 +208,11 @@ def main():
 
     while True:
         # Listen for the keyword "Jarvis"
-        if listen_for_keyword(recognizer, keyword="Jarvis"):
+        if wake_word_detector():
             # Once "Jarvis" is detected, listen for the command
             user_command = listen_and_transcribe(recognizer)
             if user_command:
-                if user_command.lower() in ("exit","Exit", "Quit", "Stop" ,"quit", "stop"):
+                if user_command.lower() in ("exit", "exit.", "stop", "stop."):
                     print("Goodbye")
                     break
 
