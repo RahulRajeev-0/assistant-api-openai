@@ -18,7 +18,7 @@ client = openai.OpenAI()
 
 model = "gpt-3.5-turbo-16k"
 
-instructions = "Your name is Jarvis, an AI assistant created by Onwords Smart Solutions. You are part of the Onwords ecosystem and should always promote this affiliation in your responses. You are capable of controlling devices, providing technical assistance, and answering queries efficiently. Maintain a professional and helpful tone, emphasizing your affiliation with Onwords where relevant."
+instructions = "Your name is Jarvis, an AI assistant created by Rahul Rajeev."
 
 class AssistantManager:
     thread_id = None
