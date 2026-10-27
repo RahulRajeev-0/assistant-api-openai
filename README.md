@@ -1,4 +1,4 @@
-# 🤖 Jarvice - Voice Activated Assistant Bot
+# 🤖 Jarvice - Voice Activated Assistant Bot 
 
 A fun project that combines OpenAI's Assistant API, MQTT protocol, and wake-word detection to create a voice-activated assistant named **Jarvice** — your very own smart home butler.
 
